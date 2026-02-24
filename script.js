@@ -145,9 +145,9 @@ function runShare() {
         const data = btoa(encodeURIComponent(JSON.stringify(collectData())));
         const url = window.location.origin + window.location.pathname + "?p=" + data;
         navigator.clipboard.writeText(url).then(() => {
-            txt.innerText = "✅ Link kopiert!";
+            txt.innerText = "Link kopiert!";
             ldr.style.display = 'none';
-            setTimeout(() => { txt.innerText = "🔗 Link zum Teilen kopieren"; txt.style.opacity = '1'; }, 2000);
+            setTimeout(() => { txt.innerText = "Link zum Teilen kopieren"; txt.style.opacity = '1'; }, 2000);
         });
     }, 600);
 }
