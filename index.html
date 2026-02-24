@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sitzplaner Pro | Final Fix</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body oncontextmenu="return false;">
+
+    <div id="loader" class="loader-overlay" style="display:none;">
+        <div class="spinner"></div>
+        <p id="loaderMsg">Verarbeite...</p>
+    </div>
+
+    <div id="tableContextMenu" class="ctx-menu">
+        <div class="ctx-item" onclick="startRotation()">Frei Drehen</div>
+        <div class="ctx-item" onclick="duplicateTable()">Duplizieren</div>
+        <div class="ctx-item" onclick="resetRotation()">Rotation nullen</div>
+        <hr>
+        <div class="ctx-item delete" onclick="deleteTable()">Löschen</div>
+    </div>
+
+    <header>
+        <div class="logo">Sitzplaner <span>Pro</span></div>
+        <div class="h-actions">
+            <div class="code-container">
+                <span class="tiny-label">CODE</span>
+                <input type="text" id="promoInput" placeholder="----">
+            </div>
+            <div class="dropdown">
+                <button class="drop-btn" onclick="toggleDrop(event)">Optionen ▾</button>
+                <div id="dropMenu" class="drop-content">
+                    <div class="drop-label">ANZEIGE</div>
+                    <a onclick="changeTheme()">Design wechseln</a>
+                    <div class="drop-label">PROJEKT</div>
+                    <a onclick="saveLocal()">Plan speichern</a>
+                    <a onclick="exportJSON()">Export (JSON)</a>
+                    <a onclick="triggerImport()">Importieren</a>
+                    <hr>
+                    <a onclick="clearAll()" class="danger">Alles löschen</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <input type="file" id="importFile" style="display:none" accept=".json">
+
+    <main>
+        <div class="ui-panel">
+            <textarea id="nameList" placeholder="Namen hier eingeben (einer pro Zeile)..."></textarea>
+            <div class="btn-grid">
+                <button class="btn-sub" onclick="addTable('double', false)">+ Tisch (H)</button>
+                <button class="btn-sub" onclick="addTable('double', true)">+ Tisch (V)</button>
+                <button class="btn-sub" onclick="addTable('pult', false)">Pult</button>
+                <button class="btn-sub" onclick="addTable('single', false)">Einzel</button>
+            </div>
+            <button class="btn-main" onclick="runGenerate()">Sitzordnung würfeln</button>
+        </div>
+
+        <div id="viewport" class="viewport">
+            <div id="rotIndicator" class="rot-badge">
+                <div class="mini-spinner"></div>
+                <span>Mausrad drehen | Klick zum Fixieren</span>
+            </div>
+            <div id="canvas" class="canvas">
+                <div class="grid-layer"></div>
+            </div>
+        </div>
+
+        <button class="btn-share" id="shareBtn" onclick="runShare()">
+            <span id="shareText">Link zum Teilen kopieren</span>
+            <div id="shareLoader" class="inline-spinner" style="display:none;"></div>
+        </button>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
