@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sitzplaner Pro | Ultimate Mobile Fix</title>
+    <title>Sitzplaner Pro | Ultimate Master Fix</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body oncontextmenu="return false;">
@@ -25,7 +25,7 @@
         <button onclick="startRotation()">🔄 Drehen</button>
         <button onclick="duplicateTable()">👯 Klonen</button>
         <button onclick="resetRotation()">🎯 0°</button>
-        <button onclick="deleteTable()" class="danger">🗑️ Weg</button>
+        <button onclick="deleteTable()" class="danger">🗑️ Löschen</button>
         <button onclick="deselectAll()" class="close-btn">✕</button>
     </div>
 
@@ -55,7 +55,7 @@
 
     <input type="file" id="importFile" style="display:none" accept=".json">
 
-    <main>
+    <main id="mainContainer">
         <div class="ui-panel" id="sidebarPanel">
             <textarea id="nameList" placeholder="Namen hier eingeben (einer pro Zeile)..."></textarea>
             <div class="btn-grid">
@@ -78,7 +78,7 @@
                     <input type="checkbox" id="snapGridCheck" onchange="toggleSnapToGrid(this.checked)">
                     <span>Layout anordnen (Klatschen)</span>
                 </label>
-                <button class="btn-download-image" onclick="downloadPresImage()">📸 Bild herunterladen</button>
+                <button class="btn-download-image" onclick="downloadPresImage()">📸 Bild runterladen</button>
                 <button class="btn-exit-pres" onclick="togglePresentationMode()">✕ Beenden</button>
             </div>
 
