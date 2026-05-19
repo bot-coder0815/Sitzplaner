@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sitzplaner Pro | Ultimate Master Fix</title>
+    <title>Sitzplaner Pro | Master Fix v11</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body oncontextmenu="return false;">
@@ -53,7 +53,7 @@
         </div>
     </header>
 
-    <input type="file" id="importFile" style="display:none" accept=".json">
+    <input type="file" id="importFile" style="display:none !important;" accept=".json">
 
     <main id="mainContainer">
         <div class="ui-panel" id="sidebarPanel">
@@ -78,8 +78,10 @@
                     <input type="checkbox" id="snapGridCheck" onchange="toggleSnapToGrid(this.checked)">
                     <span>Layout anordnen (Klatschen)</span>
                 </label>
-                <button class="btn-download-image" onclick="downloadPresImage()">📸 Bild runterladen</button>
-                <button class="btn-exit-pres" onclick="togglePresentationMode()">✕ Beenden</button>
+                <div class="pres-btn-group">
+                    <button class="btn-download-image" onclick="downloadPresImage()">📸 Bild runterladen</button>
+                    <button class="btn-exit-pres" onclick="togglePresentationMode()">✕ Beenden</button>
+                </div>
             </div>
 
             <div id="rotIndicator" class="rot-badge">
