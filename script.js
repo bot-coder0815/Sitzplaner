@@ -2,25 +2,61 @@ let activeT = null, rightT = null, rotating = false;
 let isPanning = false;
 let startX, startY;
 let pan = { x: -4500, y: -4500 }; 
+let zoom = 1;
 let isPresentation = false;
 let isSnapActive = false;
 
-// Touch Drag Hilfsvariablen
-let touchStartPos = { x: 0, y: 0 };
-let tableStartPos = { x: 0, y: 0 };
+// Mobile Longpress & Drag Engine Variables
+let touchTimeout = null;
+let isLongPressActive = false;
+let touchOffset = { x: 0, y: 0 };
 
 const canvas = document.getElementById('canvas');
 const viewport = document.getElementById('viewport');
 
 function updateCanvas() {
-    canvas.style.transform = `translate(${pan.x}px, ${pan.y}px)`;
+    canvas.style.transform = `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`;
 }
 updateCanvas();
 
-// Erkennung ob Mobilgerät
 function isMobile() { return window.innerWidth <= 768; }
 
-// --- MOUSE & PANNING EVENTS (DESKTOP) ---
+// AUTO-SCALE SCREEN SIZE LOGIC (Zentriert die Ansicht dynamisch)
+function fitTablesInView() {
+    const tables = document.querySelectorAll('.table');
+    if (tables.length === 0) {
+        pan = { x: -4500, y: -4500 };
+        zoom = 1;
+        updateCanvas();
+        return;
+    }
+
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    tables.forEach(t => {
+        const x = parseInt(t.style.left), y = parseInt(t.style.top);
+        if (x < minX) minX = x; if (x > maxX) maxX = x + t.offsetWidth;
+        if (y < minY) minY = y; if (y > maxY) maxY = y + t.offsetHeight;
+    });
+
+    const padding = 60;
+    const planW = (maxX - minX) + padding * 2;
+    const planH = (maxY - minY) + padding * 2;
+    const viewRect = viewport.getBoundingClientRect();
+
+    if (isPresentation || isMobile()) {
+        zoom = Math.min(viewRect.width / planW, viewRect.height / planH, 1.2);
+    } else {
+        zoom = 1;
+    }
+
+    pan.x = (viewRect.width / 2) - ((minX + (maxX - minX) / 2) * zoom);
+    pan.y = (viewRect.height / 2) - ((minY + (maxY - minY) / 2) * zoom);
+    updateCanvas();
+}
+
+window.addEventListener('resize', () => { if (isPresentation) fitTablesInView(); });
+
+// --- MOUSE EVENTS (DESKTOP DRAG) ---
 viewport.addEventListener('mousedown', (e) => {
     if (e.target.closest('.table')) return;
     isPanning = true;
@@ -40,34 +76,42 @@ window.addEventListener('mousemove', (e) => {
 
 window.addEventListener('mouseup', () => { isPanning = false; if(!isMobile()) activeT = null; });
 
-// --- TOUCH & PANNING EVENTS (MOBILE UPGRADE) ---
+// --- TOUCH EVENTS (LONG PRESS MECHANISM FOR MOBILE) ---
 viewport.addEventListener('touchstart', (e) => {
-    if (e.target.closest('.table')) return; // Tisch Logik fängt das ab
+    if (e.target.closest('.table')) return;
     isPanning = true;
     startX = e.touches[0].clientX - pan.x;
     startY = e.touches[0].clientY - pan.y;
 }, { passive: true });
 
 viewport.addEventListener('touchmove', (e) => {
+    const touch = e.touches[0];
     if (isPanning) {
-        pan.x = e.touches[0].clientX - startX;
-        pan.y = e.touches[0].clientY - startY;
+        pan.x = touch.clientX - startX;
+        pan.y = touch.clientY - startY;
         requestAnimationFrame(updateCanvas);
-    } else if (activeT && isMobile()) {
-        const touch = e.touches[0];
+    } else if (activeT && isLongPressActive && isMobile()) {
+        e.preventDefault(); // Stoppt Scrolling beim Ziehen
         moveTableLogic(touch.clientX, touch.clientY, activeT);
     }
 }, { passive: false });
 
-viewport.addEventListener('touchend', () => { isPanning = false; });
+viewport.addEventListener('touchend', () => {
+    isPanning = false;
+    if (touchTimeout) clearTimeout(touchTimeout);
+    if (isLongPressActive) {
+        isLongPressActive = false;
+        // Behalte Selektion für die Buttonleiste bei, hebe nur den Schwebeeffekt auf
+        if (activeT) activeT.style.transform = `rotate(${activeT.dataset.rotation || 0}deg)`;
+    }
+});
 
 function moveTableLogic(clientX, clientY, targetTable) {
     const rect = canvas.getBoundingClientRect();
-    let x = clientX - rect.left - (targetTable.offsetWidth / 2);
-    let y = clientY - rect.top - (targetTable.offsetHeight / 2);
+    let x = (clientX - rect.left) / zoom - (targetTable.offsetWidth / 2);
+    let y = (clientY - rect.top) / zoom - (targetTable.offsetHeight / 2);
 
     if (isSnapActive) {
-        // Wenn Haken aktiv ist: Sofortiges Klatschen/Einrasten auf 40px Raster
         x = Math.round(x / 40) * 40;
         y = Math.round(y / 40) * 40;
     }
@@ -79,9 +123,7 @@ function moveTableLogic(clientX, clientY, targetTable) {
 // --- TISCH SPAWN & MANAGEMENT ---
 function addTable(type, isV, names = [], x = null, y = null, rot = 0) {
     if (x === null) {
-        const v = viewport.getBoundingClientRect();
-        x = (v.width / 2) - pan.x - 70;
-        y = (v.height / 2) - pan.y - 35;
+        x = 4800; y = 4900; // Platziert sie standardmäßig sicher im Zentrum
     }
 
     const t = document.createElement('div');
@@ -99,7 +141,6 @@ function addTable(type, isV, names = [], x = null, y = null, rot = 0) {
         area.value = names[i] || "";
         area.placeholder = "Name";
         
-        // Verhindert Text-Fehlverhalten bei Bewegung
         area.onmousedown = (e) => e.stopPropagation();
         area.ontouchstart = (e) => e.stopPropagation();
         
@@ -107,7 +148,7 @@ function addTable(type, isV, names = [], x = null, y = null, rot = 0) {
         t.appendChild(seat);
     }
 
-    // DESKTOP KLICK
+    // DESKTOP INTERACTION
     t.onmousedown = (e) => {
         if (isMobile()) return;
         if (e.button === 2) {
@@ -123,21 +164,28 @@ function addTable(type, isV, names = [], x = null, y = null, rot = 0) {
         e.stopPropagation();
     };
 
-    // MOBILE TOUCH DRAG & AKTIONSLEISTE
+    // MOBILE LONGPRESS MECHANIK
     t.ontouchstart = (e) => {
         if (!isMobile()) return;
         e.stopPropagation();
-        deselectAll();
         
-        activeT = t;
-        rightT = t; // Für Duplizieren/Löschen auf Mobile spiegeln
-        t.classList.add('selected-mobile');
+        if (touchTimeout) clearTimeout(touchTimeout);
         
-        document.getElementById('mobileActionBar').style.display = 'flex';
-        
-        const touch = e.touches[0];
-        touchStartPos = { x: touch.clientX, y: touch.clientY };
-        tableStartPos = { x: parseInt(t.style.left), y: parseInt(t.style.top) };
+        touchTimeout = setTimeout(() => {
+            isLongPressActive = true;
+            activeT = t;
+            rightT = t;
+            
+            document.querySelectorAll('.table').forEach(tbl => tbl.classList.remove('selected-mobile'));
+            t.classList.add('selected-mobile');
+            
+            if (navigator.vibrate) navigator.vibrate(40); // Feedback bei Aktivierung
+            document.getElementById('mobileActionBar').style.display = 'flex';
+        }, 400); // 400ms gedrückt halten schaltet Drag & Drop frei
+    };
+
+    t.ontouchend = () => {
+        if (touchTimeout) clearTimeout(touchTimeout);
     };
 
     t.onwheel = (e) => {
@@ -148,7 +196,9 @@ function addTable(type, isV, names = [], x = null, y = null, rot = 0) {
             t.style.transform = `rotate(${r}deg)`;
         }
     };
+    
     canvas.appendChild(t);
+    if (!isPresentation) fitTablesInView();
 }
 
 function deselectAll() {
@@ -157,7 +207,7 @@ function deselectAll() {
     activeT = null;
 }
 
-// --- NEU: PRÄSENTATIONSMODUS FUNKTIONEN ---
+// --- PRÄSENTATIONSMODUS FUNCTIONS ---
 function togglePresentationMode() {
     isPresentation = !isPresentation;
     document.body.classList.toggle('presentation-mode', isPresentation);
@@ -169,52 +219,46 @@ function togglePresentationMode() {
         textOverlay.style.display = 'block';
         controls.style.display = 'flex';
         deselectAll();
-        
-        // Karte automatisch so zentrieren, dass Tische sichtbar sind
-        pan = { x: -4300, y: -4400 };
-        updateCanvas();
+        setTimeout(fitTablesInView, 50); // Skaliert das Layout passgenau auf das Gerätedisplay
     } else {
         textOverlay.style.display = 'none';
         controls.style.display = 'none';
+        zoom = 1;
+        updateCanvas();
     }
 }
 
-// "Aneinander-Klatschen" Feature
 function toggleSnapToGrid(isActive) {
     isSnapActive = isActive;
     if (isActive) {
         document.querySelectorAll('.table').forEach(t => {
             let x = parseInt(t.style.left);
             let y = parseInt(t.style.top);
-            // Mathematisch exakt auf das 40er Punktegitter runden
             t.style.left = (Math.round(x / 40) * 40) + 'px';
             t.style.top = (Math.round(y / 40) * 40) + 'px';
         });
     }
 }
 
-// Hochauflösender Foto-Download der Präsentation
 function downloadPresImage() {
-    showLoader("Generiere Bild...", 1200, () => {
-        // Kontrollleiste temporär verstecken, um sie nicht auf dem Foto zu haben
+    showLoader("Generiere Bild...", 1000, () => {
         document.getElementById('presControls').style.display = 'none';
         
         html2canvas(viewport, {
             backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(),
             useCORS: true,
-            scale: 2 // Verdoppelt die Schärfe des exportierten Bildes
+            scale: 2
         }).then(imgCanvas => {
             const link = document.createElement('a');
             link.download = 'sitzplan_praesentation.png';
             link.href = imgCanvas.toDataURL();
             link.click();
-            
             document.getElementById('presControls').style.display = 'flex';
         });
     });
 }
 
-// --- KERN-FUNKTIONEN (SPEICHERN & EXPORT) ---
+// --- DATA ENGINE & SYNC ---
 function collectData() {
     return Array.from(document.querySelectorAll('.table')).map(t => ({
         n: Array.from(t.querySelectorAll('textarea')).map(a => a.value),
@@ -224,8 +268,8 @@ function collectData() {
 }
 
 function saveLocal() {
-    localStorage.setItem('sitzplan_v8_final', JSON.stringify(collectData()));
-    alert("Plan erfolgreich auf diesem Gerät gesichert!");
+    localStorage.setItem('sitzplan_v9_responsive', JSON.stringify(collectData()));
+    alert("Plan erfolgreich gesichert!");
 }
 
 function exportJSON() {
@@ -233,7 +277,7 @@ function exportJSON() {
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'sitzplan_export.json';
+    a.href = url; a.download = 'sitzplan.json';
     document.body.appendChild(a); a.click();
     document.body.removeChild(a); URL.revokeObjectURL(url);
 }
@@ -247,7 +291,8 @@ document.getElementById('importFile').addEventListener('change', function(e) {
             const data = JSON.parse(ev.target.result);
             canvas.querySelectorAll('.table').forEach(t => t.remove());
             data.forEach(d => addTable(d.type || 'double', d.v, d.n, d.x, d.y, d.r));
-        } catch(err) { alert("Format nicht unterstützt!"); }
+            fitTablesInView();
+        } catch(err) { alert("Format-Fehler!"); }
         e.target.value = ""; 
     };
     reader.readAsText(file);
@@ -269,7 +314,6 @@ function runShare() {
     }, 600);
 }
 
-// --- UTILITIES ---
 function runGenerate() {
     const names = document.getElementById('nameList').value.split('\n').filter(n => n.trim() !== "").sort(() => 0.5 - Math.random());
     const seats = document.querySelectorAll('.seat textarea');
@@ -278,7 +322,7 @@ function runGenerate() {
 
 function toggleDrop(e) { e.stopPropagation(); document.getElementById('dropMenu').classList.toggle('show'); }
 window.onclick = () => { 
-    document.getElementById('dropMenu').classList.remove('remove'); 
+    document.getElementById('dropMenu').classList.remove('show'); 
     document.getElementById('tableContextMenu').style.display = 'none'; 
 };
 
@@ -290,7 +334,7 @@ function changeTheme() {
 function triggerImport() { document.getElementById('importFile').click(); }
 function startRotation() { rotating = true; rightT.style.borderColor = "var(--accent)"; document.getElementById('rotIndicator').style.display = 'flex'; }
 function stopRotation() { rotating = false; if(rightT) rightT.style.borderColor = ""; document.getElementById('rotIndicator').style.display = 'none'; }
-function deleteTable() { if(rightT) rightT.remove(); deselectAll(); }
+function deleteTable() { if(rightT) rightT.remove(); deselectAll(); fitTablesInView(); }
 function resetRotation() { if(rightT) { rightT.dataset.rotation = 0; rightT.style.transform = `rotate(0deg)`; } }
 function duplicateTable() {
     const d = rightT;
@@ -298,7 +342,7 @@ function duplicateTable() {
     addTable(d.dataset.type, d.classList.contains('vertical'), names, parseInt(d.style.left)+40, parseInt(d.style.top)+40, d.dataset.rotation);
     deselectAll();
 }
-function clearAll() { if(confirm("Gesamten Plan löschen?")) canvas.querySelectorAll('.table').forEach(t => t.remove()); }
+function clearAll() { if(confirm("Gesamten Plan löschen?")) { canvas.querySelectorAll('.table').forEach(t => t.remove()); deselectAll(); fitTablesInView(); } }
 function showLoader(msg, time, cb) {
     const l = document.getElementById('loader');
     document.getElementById('loaderMsg').innerText = msg; l.style.display = 'flex';
@@ -313,7 +357,15 @@ window.onload = () => {
             data.forEach(d => addTable(d.type, d.v, d.n, d.x, d.y, d.r)); 
         } catch(e) {}
     } else {
-        const local = localStorage.getItem('sitzplan_v8_final');
-        if(local) JSON.parse(local).forEach(d => addTable(d.type, d.v, d.n, d.x, d.y, d.r));
+        const local = localStorage.getItem('sitzplan_v9_responsive');
+        if(local) {
+            JSON.parse(local).forEach(d => addTable(d.type, d.v, d.n, d.x, d.y, d.r));
+        } else {
+            // Standard-Tische generieren falls Speicher leer
+            addTable('pult', false, ["Lehrer"], 4800, 4700, 0);
+            addTable('double', false, ["", ""], 4650, 4850, 0);
+            addTable('double', false, ["", ""], 4950, 4850, 0);
+        }
     }
+    setTimeout(fitTablesInView, 150);
 };
