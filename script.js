@@ -19,7 +19,7 @@ updateCanvas();
 
 function isMobile() { return window.innerWidth <= 768; }
 
-// PERFEKTE SCREEN-ANPASSUNG (Berechnet dynamisch den Zoom-Faktor für alle Tische)
+// VOLLSTÄNDIGES SCREEN-FITTING (Passt Tische an JEDE Bildschirmgröße an)
 function fitTablesInView() {
     const tables = document.querySelectorAll('.table');
     if (tables.length === 0) {
@@ -34,13 +34,13 @@ function fitTablesInView() {
         if (y < minY) minY = y; if (y > maxY) maxY = y + t.offsetHeight;
     });
 
-    const padding = isMobile() ? 40 : 100;
+    const padding = isMobile() ? 50 : 120;
     const planW = (maxX - minX) + padding * 2;
     const planH = (maxY - minY) + padding * 2;
     const viewRect = viewport.getBoundingClientRect();
 
-    // Mathematische Skalierung für responsive Vollbild-Ansichten
-    zoom = Math.min(viewRect.width / planW, viewRect.height / planH, 1.3);
+    // Dynamischer Zoom-Faktor basierend auf der aktuellen Fensterauflösung
+    zoom = Math.min(viewRect.width / planW, viewRect.height / planH, 1.4);
 
     pan.x = (viewRect.width / 2) - ((minX + (maxX - minX) / 2) * zoom);
     pan.y = (viewRect.height / 2) - ((minY + (maxY - minY) / 2) * zoom);
@@ -51,7 +51,7 @@ window.addEventListener('resize', () => { if (isPresentation) fitTablesInView();
 
 // --- DRAG LOGIK DESKTOP ---
 viewport.addEventListener('mousedown', (e) => {
-    if (e.target.closest('.table')) return;
+    if (e.target.closest('.table') || e.target.closest('.pres-controls')) return;
     isPanning = true;
     startX = e.clientX - pan.x;
     startY = e.clientY - pan.y;
@@ -69,9 +69,9 @@ window.addEventListener('mousemove', (e) => {
 
 window.addEventListener('mouseup', () => { isPanning = false; if(!isMobile()) activeT = null; });
 
-// --- MOBILE TOUCH HANDLING (LONGPRESS DRAG & DROP) ---
+// --- KORRIGIERTES MOBILE TOUCH HANDLING (LONGPRESS DRAG & DROP) ---
 viewport.addEventListener('touchstart', (e) => {
-    if (e.target.closest('.table')) return;
+    if (e.target.closest('.table') || e.target.closest('.pres-controls')) return;
     isPanning = true;
     startX = e.touches[0].clientX - pan.x;
     startY = e.touches[0].clientY - pan.y;
@@ -92,9 +92,9 @@ viewport.addEventListener('touchmove', (e) => {
 viewport.addEventListener('touchend', () => {
     isPanning = false;
     if (touchTimeout) clearTimeout(touchTimeout);
+    // Verhindert abrupten Abbruch des Touch-Zyklus
     if (isLongPressActive) {
         isLongPressActive = false;
-        if (activeT) activeT.style.transform = `rotate(${activeT.dataset.rotation || 0}deg)`;
     }
 });
 
@@ -112,7 +112,7 @@ function moveTableLogic(clientX, clientY, targetTable) {
     targetTable.style.top = y + 'px';
 }
 
-// --- SPAWN ENGINE ---
+// --- TABLE CREATION SYSTEM ---
 function addTable(type, isV, names = [], x = null, y = null, rot = 0) {
     if (x === null) { x = 4820; y = 4900; }
 
@@ -153,7 +153,7 @@ function addTable(type, isV, names = [], x = null, y = null, rot = 0) {
         e.stopPropagation();
     };
 
-    // Mobile Touch Longpress Trigger
+    // Reparierter Touch-Longpress mit Schutz vor Panning-Verschlucken
     t.ontouchstart = (e) => {
         if (!isMobile()) return;
         e.stopPropagation();
@@ -162,6 +162,7 @@ function addTable(type, isV, names = [], x = null, y = null, rot = 0) {
         touchTimeout = setTimeout(() => {
             isLongPressActive = true;
             activeT = t; rightT = t;
+            isPanning = false; // Schaltet Karten-Verschiebung für diesen Zyklus ab
             
             document.querySelectorAll('.table').forEach(tbl => tbl.classList.remove('selected-mobile'));
             t.classList.add('selected-mobile');
@@ -191,7 +192,7 @@ function deselectAll() {
     activeT = null;
 }
 
-// --- PRÄSENTATIONSMODUS ENGINE ---
+// --- REPARIERTE PRÄSENTATIONSMODUS ENGINE ---
 function togglePresentationMode() {
     isPresentation = !isPresentation;
     document.body.classList.toggle('presentation-mode', isPresentation);
@@ -203,7 +204,8 @@ function togglePresentationMode() {
         textOverlay.style.display = 'block';
         controls.style.display = 'flex';
         deselectAll();
-        setTimeout(fitTablesInView, 150); // Erzwingt automatische Screen-Anpassung
+        // Gibt der Engine Zeit, die neuen Viewport-Grenzen zu berechnen
+        setTimeout(fitTablesInView, 100); 
     } else {
         textOverlay.style.display = 'none';
         controls.style.display = 'none';
@@ -253,7 +255,7 @@ function collectData() {
 }
 
 function saveLocal() {
-    localStorage.setItem('sitzplan_v11_master', JSON.stringify(collectData()));
+    localStorage.setItem('sitzplan_v12_core', JSON.stringify(collectData()));
     alert("Plan erfolgreich auf diesem Gerät gesichert!");
 }
 
@@ -267,7 +269,7 @@ function exportJSON() {
     document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
-// FIX: Der Import-Event-Listener greift jetzt absolut fehlerfrei auf die JSON-Daten zu
+// DER KORREKTE IMPORT TRIGGER (Löscht alte Elemente sauber und fittet neu)
 document.getElementById('importFile').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if(!file) return;
@@ -277,7 +279,7 @@ document.getElementById('importFile').addEventListener('change', function(e) {
             const data = JSON.parse(ev.target.result);
             canvas.querySelectorAll('.table').forEach(t => t.remove());
             data.forEach(d => addTable(d.type || 'double', d.v, d.n, d.x, d.y, d.r));
-            setTimeout(fitTablesInView, 100);
+            setTimeout(fitTablesInView, 150);
         } catch(err) { alert("Format-Fehler in der JSON-Datei!"); }
         e.target.value = ""; 
     };
@@ -315,10 +317,13 @@ function toggleDrop(e) {
     document.getElementById('dropMenu').classList.toggle('show'); 
 }
 
-window.onclick = () => { 
-    document.getElementById('dropMenu').classList.remove('show'); 
-    document.getElementById('tableContextMenu').style.display = 'none'; 
-};
+// FIX: Isoliert das Schließen der UI-Elemente, damit andere Buttons klicken können
+window.addEventListener('click', (e) => {
+    if (!e.target.matches('.drop-btn')) {
+        document.getElementById('dropMenu').classList.remove('show');
+    }
+    document.getElementById('tableContextMenu').style.display = 'none';
+});
 
 function changeTheme() { 
     const h = document.documentElement;
@@ -350,7 +355,7 @@ window.onload = () => {
             data.forEach(d => addTable(d.type, d.v, d.n, d.x, d.y, d.r)); 
         } catch(e) {}
     } else {
-        const local = localStorage.getItem('sitzplan_v11_master');
+        const local = localStorage.getItem('sitzplan_v12_core');
         if(local) {
             JSON.parse(local).forEach(d => addTable(d.type, d.v, d.n, d.x, d.y, d.r));
         } else {
