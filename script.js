@@ -39,7 +39,6 @@ function fitTablesInView() {
     const planH = (maxY - minY) + padding * 2;
     const viewRect = viewport.getBoundingClientRect();
 
-    // Dynamischer Zoom-Faktor basierend auf der aktuellen Fensterauflösung
     zoom = Math.min(viewRect.width / planW, viewRect.height / planH, 1.4);
 
     pan.x = (viewRect.width / 2) - ((minX + (maxX - minX) / 2) * zoom);
@@ -69,7 +68,7 @@ window.addEventListener('mousemove', (e) => {
 
 window.addEventListener('mouseup', () => { isPanning = false; if(!isMobile()) activeT = null; });
 
-// --- KORRIGIERTES MOBILE TOUCH HANDLING (LONGPRESS DRAG & DROP) ---
+// --- DRAG LOGIK MOBILE ---
 viewport.addEventListener('touchstart', (e) => {
     if (e.target.closest('.table') || e.target.closest('.pres-controls')) return;
     isPanning = true;
@@ -92,7 +91,6 @@ viewport.addEventListener('touchmove', (e) => {
 viewport.addEventListener('touchend', () => {
     isPanning = false;
     if (touchTimeout) clearTimeout(touchTimeout);
-    // Verhindert abrupten Abbruch des Touch-Zyklus
     if (isLongPressActive) {
         isLongPressActive = false;
     }
@@ -112,7 +110,7 @@ function moveTableLogic(clientX, clientY, targetTable) {
     targetTable.style.top = y + 'px';
 }
 
-// --- TABLE CREATION SYSTEM ---
+// --- TISCH-CREATION & EVENTS ---
 function addTable(type, isV, names = [], x = null, y = null, rot = 0) {
     if (x === null) { x = 4820; y = 4900; }
 
@@ -138,7 +136,6 @@ function addTable(type, isV, names = [], x = null, y = null, rot = 0) {
         t.appendChild(seat);
     }
 
-    // Desktop Mouse Bindings
     t.onmousedown = (e) => {
         if (isMobile()) return;
         if (e.button === 2) {
@@ -153,7 +150,6 @@ function addTable(type, isV, names = [], x = null, y = null, rot = 0) {
         e.stopPropagation();
     };
 
-    // Reparierter Touch-Longpress mit Schutz vor Panning-Verschlucken
     t.ontouchstart = (e) => {
         if (!isMobile()) return;
         e.stopPropagation();
@@ -162,7 +158,7 @@ function addTable(type, isV, names = [], x = null, y = null, rot = 0) {
         touchTimeout = setTimeout(() => {
             isLongPressActive = true;
             activeT = t; rightT = t;
-            isPanning = false; // Schaltet Karten-Verschiebung für diesen Zyklus ab
+            isPanning = false; 
             
             document.querySelectorAll('.table').forEach(tbl => tbl.classList.remove('selected-mobile'));
             t.classList.add('selected-mobile');
@@ -192,7 +188,7 @@ function deselectAll() {
     activeT = null;
 }
 
-// --- REPARIERTE PRÄSENTATIONSMODUS ENGINE ---
+// --- PRÄSENTATIONSMODUS ENGINE ---
 function togglePresentationMode() {
     isPresentation = !isPresentation;
     document.body.classList.toggle('presentation-mode', isPresentation);
@@ -204,7 +200,6 @@ function togglePresentationMode() {
         textOverlay.style.display = 'block';
         controls.style.display = 'flex';
         deselectAll();
-        // Gibt der Engine Zeit, die neuen Viewport-Grenzen zu berechnen
         setTimeout(fitTablesInView, 100); 
     } else {
         textOverlay.style.display = 'none';
@@ -269,27 +264,70 @@ function exportJSON() {
     document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
-// DER KORREKTE IMPORT TRIGGER (Löscht alte Elemente sauber und fittet neu)
-document.getElementById('importFile').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-        try {
-            const data = JSON.parse(ev.target.result);
-            canvas.querySelectorAll('.table').forEach(t => t.remove());
-            data.forEach(d => addTable(d.type || 'double', d.v, d.n, d.x, d.y, d.r));
-            setTimeout(fitTablesInView, 150);
-        } catch(err) { alert("Format-Fehler in der JSON-Datei!"); }
-        e.target.value = ""; 
-    };
-    reader.readAsText(file);
-});
-
 function triggerImport() { 
-    document.getElementById('importFile').click(); 
+    const fileInput = document.getElementById('importFile');
+    if (fileInput) {
+        fileInput.click(); 
+    } else {
+        console.error("Import-Button im HTML nicht gefunden!");
+    }
 }
 
+// Zentrale Start- und Setup-Zentrale (DOM Ready)
+window.onload = () => {
+    const fileInput = document.getElementById('importFile');
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    
+                    canvas.querySelectorAll('.table').forEach(t => t.remove());
+                    deselectAll();
+                    
+                    data.forEach(d => {
+                        addTable(d.type || 'double', d.v, d.n, d.x, d.y, d.r);
+                    });
+                    
+                    setTimeout(fitTablesInView, 150);
+                } catch(err) { 
+                    alert("Format-Fehler oder beschädigte JSON-Datei!"); 
+                }
+                e.target.value = ""; 
+            };
+            reader.readAsText(file);
+        });
+    }
+
+    const p = new URLSearchParams(window.location.search).get('p');
+    if(p) {
+        try { 
+            const data = JSON.parse(decodeURIComponent(atob(p)));
+            data.forEach(d => addTable(d.type, d.v, d.n, d.x, d.y, d.r)); 
+        } catch(e) {}
+    } else {
+        const local = localStorage.getItem('sitzplan_v12_core');
+        if(local) {
+            try {
+                JSON.parse(local).forEach(d => addTable(d.type, d.v, d.n, d.x, d.y, d.r));
+            } catch(e) {
+                localStorage.removeItem('sitzplan_v12_core');
+            }
+        } else {
+            addTable('pult', false, ["Lehrer"], 4800, 4700, 0);
+            addTable('double', false, ["", ""], 4650, 4850, 0);
+            addTable('double', false, ["", ""], 4950, 4850, 0);
+        }
+    }
+    
+    setTimeout(fitTablesInView, 200);
+};
+
+// --- WEITERE HILFSFUNKTIONEN ---
 function runShare() {
     const btn = document.getElementById('shareBtn');
     const txt = document.getElementById('shareText');
@@ -317,7 +355,6 @@ function toggleDrop(e) {
     document.getElementById('dropMenu').classList.toggle('show'); 
 }
 
-// FIX: Isoliert das Schließen der UI-Elemente, damit andere Buttons klicken können
 window.addEventListener('click', (e) => {
     if (!e.target.matches('.drop-btn')) {
         document.getElementById('dropMenu').classList.remove('show');
@@ -331,7 +368,7 @@ function changeTheme() {
 }
 
 function startRotation() { rotating = true; rightT.style.borderColor = "var(--accent)"; document.getElementById('rotIndicator').style.display = 'flex'; }
-function stopRotation() { rotating = false; if(rightT) rightT.style.borderColor = ""; document.getElementById('rotIndicator').style.display = 'none'; }
+function stopRotation() { rotating = false; if(rightT) rightT.style.borderColor = ""; document.getElementById('rotIndicator').style.none = 'none'; }
 function deleteTable() { if(rightT) rightT.remove(); deselectAll(); fitTablesInView(); }
 function resetRotation() { if(rightT) { rightT.dataset.rotation = 0; rightT.style.transform = `rotate(0deg)`; } }
 function duplicateTable() {
@@ -346,23 +383,3 @@ function showLoader(msg, time, cb) {
     document.getElementById('loaderMsg').innerText = msg; l.style.display = 'flex';
     setTimeout(() => { l.style.display = 'none'; if(cb) cb(); }, time);
 }
-
-window.onload = () => {
-    const p = new URLSearchParams(window.location.search).get('p');
-    if(p) {
-        try { 
-            const data = JSON.parse(decodeURIComponent(atob(p)));
-            data.forEach(d => addTable(d.type, d.v, d.n, d.x, d.y, d.r)); 
-        } catch(e) {}
-    } else {
-        const local = localStorage.getItem('sitzplan_v12_core');
-        if(local) {
-            JSON.parse(local).forEach(d => addTable(d.type, d.v, d.n, d.x, d.y, d.r));
-        } else {
-            addTable('pult', false, ["Lehrer"], 4800, 4700, 0);
-            addTable('double', false, ["", ""], 4650, 4850, 0);
-            addTable('double', false, ["", ""], 4950, 4850, 0);
-        }
-    }
-    setTimeout(fitTablesInView, 200);
-};
