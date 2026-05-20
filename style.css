@@ -41,35 +41,37 @@ textarea#nameList { width: 100%; height: 55px; background: var(--bg); color: var
 .grid-layer { position: absolute; inset: 0; background-image: radial-gradient(var(--grid-dot) 1px, transparent 0); background-size: 40px 40px; }
 
 /* Tische */
-.table { position: absolute; background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; display: flex; pointer-events: all; box-shadow: 0 4px 15px rgba(0,0,0,0.15); touch-action: none; z-index: 10; }
+.table { position: absolute; background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; display: flex; pointer-events: all; box-shadow: 0 4px 15px rgba(0,0,0,0.15); touch-action: none; z-index: 10; transition: border-color 0.2s, box-shadow 0.2s; }
 .table.double { width: 140px; height: 75px; }
 .table.double.vertical { width: 75px; height: 140px; flex-direction: column; }
 .table.pult { width: 160px; height: 85px; border: 2px solid var(--accent); }
 .table.single { width: 75px; height: 75px; }
 
+/* Aktiver Longpress Zustand */
 .table.selected-mobile { 
     border-color: var(--accent) !important; 
-    box-shadow: 0 0 35px rgba(0,122,255,0.7) !important; 
+    box-shadow: 0 0 35px rgba(0,122,255,0.8) !important; 
     transform: scale(1.1) !important;
     z-index: 9999 !important;
 }
+.table:hover { border-color: var(--accent); z-index: 100; }
 
 .seat { flex: 1; display: flex; align-items: center; justify-content: center; }
 .seat textarea { width: 90%; background: transparent; border: none; color: var(--text); font-weight: 700; font-size: 11px; text-align: center; resize: none; overflow: hidden; pointer-events: auto !important; }
 
-/* REPARIERTE PRÄS-OVERLAYS: Absolut krisensicher positioniert */
+/* PRÄSENTATIONSMODUS OVERLAYS - Absolut fixes Layer-Sizing */
 .pres-text-container { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 99999; width: 85%; text-align: center; pointer-events: auto; }
 #presTitleInput { background: transparent; border: none; color: var(--text); font-size: 1.8rem; font-weight: 800; text-align: center; width: 100%; outline: none; text-shadow: 0 2px 12px rgba(0,0,0,0.7); }
 
-.pres-controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 99999; display: flex; gap: 20px; align-items: center; justify-content: space-between; background: var(--panel); padding: 12px 24px; border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 15px 40px rgba(0,0,0,0.6); width: calc(100% - 40px); max-width: 850px; pointer-events: auto; }
-.pres-btn-group { display: flex; gap: 10px; }
+.pres-controls { position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%); z-index: 99999; display: flex; gap: 20px; align-items: center; justify-content: space-between; background: var(--panel); padding: 14px 24px; border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 15px 40px rgba(0,0,0,0.6); width: calc(100% - 40px); max-width: 850px; pointer-events: auto; }
+.pres-btn-group { display: flex; gap: 10px; pointer-events: auto; }
 
 .snap-toggle { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; cursor: pointer; color: var(--text); white-space: nowrap; }
 .snap-toggle input { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
-.btn-download-image { background: var(--accent); color: white; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 13px; }
-.btn-exit-pres { background: #ff3b30; color: white; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 13px; }
+.btn-download-image { background: var(--accent); color: white; border: none; padding: 11px 18px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 13px; }
+.btn-exit-pres { background: #ff3b30; color: white; border: none; padding: 11px 18px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 13px; z-index: 999999 !important; }
 
-/* Mobile Top Action Bar */
+/* Mobile Leiste */
 .mobile-action-bar { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 65px; background: var(--panel); border-bottom: 3px solid var(--accent); z-index: 999999; align-items: center; justify-content: space-around; padding: 0 10px; box-shadow: 0 8px 25px rgba(0,0,0,0.4); }
 .mobile-action-bar button { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px 14px; border-radius: 10px; font-size: 12px; font-weight: 700; }
 .mobile-action-bar button.danger { background: rgba(255,59,48,0.2); border-color: #ff3b30; color: #ff3b30; }
@@ -77,7 +79,7 @@ textarea#nameList { width: 100%; height: 55px; background: var(--bg); color: var
 
 .btn-share { width: 100%; padding: 14px; border-radius: 14px; background: var(--accent); color: white; border: none; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; flex-shrink: 0; }
 .rot-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--accent); color: white; padding: 8px 18px; border-radius: 20px; display: none; align-items: center; gap: 10px; z-index: 500; }
-.loader-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
+.loader-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999999; display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
 .spinner { width: 45px; height: 45px; border: 5px solid rgba(255,255,255,0.1); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s infinite linear; }
 .ctx-menu { position: fixed; display: none; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 5px; z-index: 3000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); min-width: 170px; }
 .ctx-item { padding: 10px 14px; cursor: pointer; border-radius: 8px; font-size: 13px; color: var(--text); }
