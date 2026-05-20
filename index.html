@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sitzplaner Pro | Ultimate Core Fix</title>
+    <title>Sitzplaner Pro | Full Core Stack</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body oncontextmenu="return false;">
@@ -13,6 +13,7 @@
         <p id="loaderMsg">Verarbeite...</p>
     </div>
 
+    <!-- Desktop Kontextmenü -->
     <div id="tableContextMenu" class="ctx-menu">
         <div class="ctx-item" onclick="startRotation()">🔄 Frei Drehen</div>
         <div class="ctx-item" onclick="duplicateTable()">👯 Duplizieren</div>
@@ -21,6 +22,7 @@
         <div class="ctx-item delete" onclick="deleteTable()">🗑️ Löschen</div>
     </div>
 
+    <!-- Mobile Aktionsleiste -->
     <div id="mobileActionBar" class="mobile-action-bar">
         <button onclick="startRotation()">🔄 Drehen</button>
         <button onclick="duplicateTable()">👯 Klonen</button>
@@ -53,6 +55,7 @@
         </div>
     </header>
 
+    <!-- Versteckter Datei-Input für den fehlerfreien Import -->
     <input type="file" id="importFile" style="display:none;" accept=".json">
 
     <main id="mainContainer">
@@ -69,6 +72,7 @@
 
         <div id="viewport" class="viewport">
             
+            <!-- Präsentations-Overlays (Absolut fixiert über dem Canvas) -->
             <div id="presTextOverlay" class="pres-text-container" style="display: none;">
                 <input type="text" id="presTitleInput" value="Sitzplan | Made with Pro" placeholder="Hier Titel eingeben...">
             </div>
