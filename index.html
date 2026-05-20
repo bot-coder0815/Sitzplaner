@@ -21,7 +21,7 @@
         <hr>
         <div class="ctx-item delete" onclick="deleteTable()">🗑️ Löschen</div>
     </div>
-
+    
     <!-- Mobile Aktionsleiste -->
     <div id="mobileActionBar" class="mobile-action-bar">
         <button onclick="startRotation()">🔄 Drehen</button>
@@ -47,7 +47,8 @@
                     <div class="drop-label">PROJEKT</div>
                     <a onclick="saveLocal()">💾 Plan speichern</a>
                     <a onclick="exportJSON()">📤 Export (JSON)</a>
-                    <a onclick="triggerImport()">📥 Importieren</a>
+                    <a onclick="triggerImport()">📥 Datei importieren</a>
+                    <a onclick="openJsonPasteModal()">📋 Code einfügen (JSON)</a>
                     <hr>
                     <a onclick="clearAll()" class="danger">🗑️ Alles löschen</a>
                 </div>
@@ -57,6 +58,18 @@
 
     <!-- Versteckter Datei-Input für den fehlerfreien Import -->
     <input type="file" id="importFile" style="display:none;" accept=".json">
+
+    <!-- Modal für RAW JSON Paste -->
+    <div id="jsonPasteModal" class="modal-overlay" style="display:none;">
+        <div class="modal-card">
+            <h3>JSON-Code einfügen</h3>
+            <textarea id="jsonPasteInput" placeholder="Füge deinen Sitzplan-JSON-Code hier ein..."></textarea>
+            <div class="modal-actions">
+                <button class="btn-sub" onclick="closeJsonPasteModal()">Abbrechen</button>
+                <button class="btn-main" onclick="importRawJson()">Laden</button>
+            </div>
+        </div>
+    </div>
 
     <main id="mainContainer">
         <div class="ui-panel" id="sidebarPanel">
@@ -71,8 +84,7 @@
         </div>
 
         <div id="viewport" class="viewport">
-            
-            <!-- Präsentations-Overlays (Absolut fixiert über dem Canvas) -->
+            <!-- Präsentations-Overlays -->
             <div id="presTextOverlay" class="pres-text-container" style="display: none;">
                 <input type="text" id="presTitleInput" value="Sitzplan | Made with Pro" placeholder="Hier Titel eingeben...">
             </div>
