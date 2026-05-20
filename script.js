@@ -19,7 +19,6 @@ updateCanvas();
 
 function isMobile() { return window.innerWidth <= 768; }
 
-// VOLLSTÄNDIGES SCREEN-FITTING (Passt Tische an JEDE Bildschirmgröße an)
 function fitTablesInView() {
     const tables = document.querySelectorAll('.table');
     if (tables.length === 0) {
@@ -268,8 +267,44 @@ function triggerImport() {
     const fileInput = document.getElementById('importFile');
     if (fileInput) {
         fileInput.click(); 
-    } else {
-        console.error("Import-Button im HTML nicht gefunden!");
+    }
+}
+
+// --- NEU: RAW JSON PASTE FUNKTIONEN ---
+function openJsonPasteModal() {
+    document.getElementById('jsonPasteInput').value = "";
+    document.getElementById('jsonPasteModal').style.display = 'flex';
+}
+
+function closeJsonPasteModal() {
+    document.getElementById('jsonPasteModal').style.display = 'none';
+}
+
+function importRawJson() {
+    const rawCode = document.getElementById('jsonPasteInput').value.trim();
+    if (!rawCode) {
+        alert("Bitte füge zuerst einen JSON-Code ein!");
+        return;
+    }
+    try {
+        const data = JSON.parse(rawCode);
+        if (!Array.isArray(data)) {
+            throw new Error("Daten müssen ein Array von Tischen sein.");
+        }
+        
+        // Alten Plan säubern
+        canvas.querySelectorAll('.table').forEach(t => t.remove());
+        deselectAll();
+        
+        // Neue Tische aufbauen
+        data.forEach(d => {
+            addTable(d.type || 'double', d.v, d.n, d.x, d.y, d.r);
+        });
+        
+        closeJsonPasteModal();
+        setTimeout(fitTablesInView, 150);
+    } catch(err) {
+        alert("Format-Fehler! Ungültiger Sitzplan-JSON Code.");
     }
 }
 
@@ -285,14 +320,11 @@ window.onload = () => {
             reader.onload = (ev) => {
                 try {
                     const data = JSON.parse(ev.target.result);
-                    
                     canvas.querySelectorAll('.table').forEach(t => t.remove());
                     deselectAll();
-                    
                     data.forEach(d => {
                         addTable(d.type || 'double', d.v, d.n, d.x, d.y, d.r);
                     });
-                    
                     setTimeout(fitTablesInView, 150);
                 } catch(err) { 
                     alert("Format-Fehler oder beschädigte JSON-Datei!"); 
@@ -323,7 +355,6 @@ window.onload = () => {
             addTable('double', false, ["", ""], 4950, 4850, 0);
         }
     }
-    
     setTimeout(fitTablesInView, 200);
 };
 
@@ -357,8 +388,14 @@ function toggleDrop(e) {
 
 window.addEventListener('click', (e) => {
     if (!e.target.matches('.drop-btn')) {
-        document.getElementById('dropMenu').classList.remove('show');
+        document.getElementById('dropMenu').classList.remove('remove');
     }
+    // Verhindert das Schließen des Modals bei Klicks innerhalb des Modals
+    if (!e.target.closest('.modal-card') && !e.target.matches('[onclick="openJsonPasteModal()"]') && !e.target.matches('.drop-btn')) {
+        const modal = document.getElementById('jsonPasteModal');
+        if (modal) modal.style.display = 'none';
+    }
+    document.getElementById('dropMenu').classList.remove('show');
     document.getElementById('tableContextMenu').style.display = 'none';
 });
 
@@ -368,7 +405,7 @@ function changeTheme() {
 }
 
 function startRotation() { rotating = true; rightT.style.borderColor = "var(--accent)"; document.getElementById('rotIndicator').style.display = 'flex'; }
-function stopRotation() { rotating = false; if(rightT) rightT.style.borderColor = ""; document.getElementById('rotIndicator').style.none = 'none'; }
+function stopRotation() { rotating = false; if(rightT) rightT.style.borderColor = ""; document.getElementById('rotIndicator').style.display = 'none'; }
 function deleteTable() { if(rightT) rightT.remove(); deselectAll(); fitTablesInView(); }
 function resetRotation() { if(rightT) { rightT.dataset.rotation = 0; rightT.style.transform = `rotate(0deg)`; } }
 function duplicateTable() {
