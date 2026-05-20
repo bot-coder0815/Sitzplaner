@@ -47,7 +47,6 @@ textarea#nameList { width: 100%; height: 55px; background: var(--bg); color: var
 .table.pult { width: 160px; height: 85px; border: 2px solid var(--accent); }
 .table.single { width: 75px; height: 75px; }
 
-/* Mobiler Schwebe-Zustand (Drag) */
 .table.selected-mobile { 
     border-color: var(--accent) !important; 
     box-shadow: 0 0 35px rgba(0,122,255,0.8) !important; 
@@ -59,7 +58,7 @@ textarea#nameList { width: 100%; height: 55px; background: var(--bg); color: var
 .seat { flex: 1; display: flex; align-items: center; justify-content: center; }
 .seat textarea { width: 90%; background: transparent; border: none; color: var(--text); font-weight: 700; font-size: 11px; text-align: center; resize: none; overflow: hidden; pointer-events: auto !important; }
 
-/* Präsentationsmodus Layout-Fixes */
+/* Präsentationsmodus */
 .pres-text-container { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 99999; width: 85%; text-align: center; pointer-events: auto; }
 #presTitleInput { background: transparent; border: none; color: var(--text); font-size: 1.8rem; font-weight: 800; text-align: center; width: 100%; outline: none; text-shadow: 0 2px 12px rgba(0,0,0,0.7); }
 
@@ -85,10 +84,17 @@ textarea#nameList { width: 100%; height: 55px; background: var(--bg); color: var
 .ctx-item { padding: 10px 14px; cursor: pointer; border-radius: 8px; font-size: 13px; color: var(--text); }
 .ctx-item:hover { background: var(--accent); color: white; }
 
+/* NEU: Styles für das JSON Paste Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 5000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal-card { background: var(--panel); border: 1px solid var(--border); border-radius: 20px; width: 100%; max-width: 500px; padding: 20px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 15px 40px rgba(0,0,0,0.5); }
+.modal-card h3 { font-size: 1.1rem; font-weight: 700; }
+.modal-card textarea { width: 100%; height: 200px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 12px; font-family: monospace; font-size: 12px; resize: none; outline: none; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.modal-actions button { width: auto; padding: 10px 20px; }
+
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
 
-/* Modus-Switches (Klassenbasiert) */
 body.presentation-mode #mainHeader, body.presentation-mode #sidebarPanel, body.presentation-mode #shareBtn { display: none !important; }
 body.presentation-mode main { padding: 0 !important; gap: 0 !important; }
 body.presentation-mode .viewport { border-radius: 0 !important; border: none !important; }
